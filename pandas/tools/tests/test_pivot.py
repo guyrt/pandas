@@ -151,7 +151,7 @@ class TestPivotTable(unittest.TestCase):
         nan = np.nan
         df = DataFrame({"a":['R1', 'R2', nan, 'R4'], 'b':["C1", "C2", "C3" , "C4"], "c":[10, 15, nan , 20]})
         result = df.pivot('a','b','c')
-        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan], 
+        expected = DataFrame([[nan,nan,nan,nan],[nan,10,nan,nan],
                               [nan,nan,nan,nan],[nan,nan,15,20]],
                              index = Index(['R1','R2',nan,'R4'],name='a'),
                              columns = Index(['C1','C2','C3','C4'],name='b'))
@@ -289,6 +289,28 @@ class TestPivotTable(unittest.TestCase):
         result = self.data.pivot_table(rows='A', cols='B', aggfunc=f)
 
         tm.assert_frame_equal(result, expected)
+
+    def test_margins_no_values_no_cols(self):
+        # Regression test on pivot table: no values or cols passed.
+        result = self.data[['A', 'B']].pivot_table(rows=['A', 'B'], aggfunc=len, margins=True)
+        result_list = result.tolist()
+        self.assertEqual(sum(result_list[:-1]), result_list[-1])
+
+    def test_margins_no_values_two_rows(self):
+        # Regression test on pivot table: no values passed but rows are a multi-index
+        result = self.data[['A', 'B', 'C']].pivot_table(rows=['A', 'B'], cols='C', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
+
+    def test_margins_no_values_one_row_one_col(self):
+        # Regression test on pivot table: no values passed but row and col defined
+        result = self.data[['A', 'B']].pivot_table(rows='A', cols='B', aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [4.0, 7.0, 11.0])
+
+    def test_margins_no_values_two_row_two_cols(self):
+        # Regression test on pivot table: no values passed but rows and cols are multi-indexed
+        self.data['D'] = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']
+        result = self.data[['A', 'B', 'C', 'D']].pivot_table(rows=['A', 'B'], cols=['C', 'D'], aggfunc=len, margins=True)
+        self.assertEqual(result.All.tolist(), [3.0, 1.0, 4.0, 3.0, 11.0])
 
 
 class TestCrosstab(unittest.TestCase):
